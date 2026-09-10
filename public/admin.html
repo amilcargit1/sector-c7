@@ -59,7 +59,9 @@ async function init() {
   let me;
   try {
     me = await api("/api/auth/me");
-  } catch {
+  } catch (err) {
+    document.getElementById("denied").textContent =
+      err.error || "No tienes acceso a esta página.";
     document.getElementById("denied").style.display = "block";
     return;
   }
