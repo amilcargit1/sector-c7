@@ -1,8 +1,10 @@
 const express = require("express");
 const User = require("../models/User");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
+const requireDB = require("../middleware/requireDB");
 
 const router = express.Router();
+router.use(requireDB);
 
 router.get("/", requireAuth, requireAdmin, async (req, res) => {
   const users = await User.find().select("username role createdAt").sort({ createdAt: 1 });
