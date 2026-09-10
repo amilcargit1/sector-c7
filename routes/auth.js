@@ -2,8 +2,10 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { requireAuth } = require("../middleware/auth");
+const requireDB = require("../middleware/requireDB");
 
 const router = express.Router();
+router.use(requireDB);
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
