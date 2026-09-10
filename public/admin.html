@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sector C7 — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="coord">42.6°N — 71.1°W</div>
+    <div class="mark">SECTOR&nbsp;C-7</div>
+    <div class="status"><a href="index.html">ver sitio</a></div>
+  </header>
+
+  <main class="admin-wrap" id="app" style="display:none;">
+    <div class="admin-top">
+      <h1>Panel de administración</h1>
+      <div class="admin-who">
+        <span id="who"></span>
+        <button id="logout">salir</button>
+      </div>
+    </div>
+
+    <section class="admin-block">
+      <h2>Juegos</h2>
+      <div class="admin-list" id="games-list"></div>
+      <div class="admin-form-inline" id="games-form">
+        <input id="g-coord" placeholder="C7-05" />
+        <input id="g-name" placeholder="Nombre del juego" />
+        <input id="g-desc" placeholder="Descripción corta" />
+        <button id="g-add">Agregar</button>
+      </div>
+    </section>
+
+    <section class="admin-block">
+      <h2>Integrantes</h2>
+      <div class="admin-list" id="users-list"></div>
+    </section>
+  </main>
+
+  <p class="auth-msg" id="denied" style="display:none; text-align:center; padding-top:120px;">
+    No tienes acceso a esta página. <a href="login.html">Entrar</a>
+  </p>
+
+<script>
+async function api(path, options = {}) {
+  const res = await fetch(path, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+async function init() {
+  let me;
+  try {
+    me = await api("/api/auth/me");
+  } catch {
+    document.getElementById("denied").style.display = "block";
+    return;
+  }
+
+  if (me.role !== "admin") {
+    document.getElementById("denied").innerHTML =
+      "Tu cuenta no tiene permisos de admin todavía.";
+    document.getElementById("denied").style.display = "block";
+    return;
+  }
+
+  document.getElementById("app").style.display = "block";
+  document.getElementById("who").textContent = `${me.username} · admin`;
+
+  document.getElementById("logout").addEventListener("click", async () => {
+    await api("/api/auth/logout", { method: "POST" });
+    window.location.href = "login.html";
+  });
+
+  await loadGames();
+  await loadUsers();
+
+  document.getElementById("g-add").addEventListener("click", async () => {
+    const coord = document.getElementById("g-coord").value.trim();
+    const name = document.getElementById("g-name").value.trim();
+    const description = document.getElementById("g-desc").value.trim();
+    if (!coord || !name) return;
+
+    await api("/api/games", {
+      method: "POST",
+      body: JSON.stringify({ coord, name, description }),
+    });
+    document.getElementById("g-coord").value = "";
+    document.getElementById("g-name").value = "";
+    document.getElementById("g-desc").value = "";
+    loadGames();
+  });
+}
+
+async function loadGames() {
+  const games = await api("/api/games");
+  const list = document.getElementById("games-list");
+  list.innerHTML = "";
+  games.forEach((g) => {
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    row.innerHTML = `
+      <div class="row-main">
+        <span class="row-coord">${g.coord}</span>
+        <span>${g.name}</span>
+      </div>
+      <button data-id="${g._id}">eliminar</button>
+    `;
+    row.querySelector("button").addEventListener("click", async () => {
+      await api(`/api/games/${g._id}`, { method: "DELETE" });
+      loadGames();
+    });
+    list.appendChild(row);
+  });
+}
+
+async function loadUsers() {
+  const users = await api("/api/users");
+  const list = document.getElementById("users-list");
+  list.innerHTML = "";
+  users.forEach((u) => {
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    const nextRole = u.role === "admin" ? "member" : "admin";
+    row.innerHTML = `
+      <div class="row-main">
+        <span class="row-coord">${u.role}</span>
+        <span>${u.username}</span>
+      </div>
+      <button data-id="${u._id}">hacer ${nextRole}</button>
+    `;
+    row.querySelector("button").addEventListener("click", async () => {
+      await api(`/api/users/${u._id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role: nextRole }),
+      });
+      loadUsers();
+    });
+    list.appendChild(row);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
