@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const path = require("path");
-const connectDB = require("./config/db");
+const { connectDB } = require("./config/db");
 
 const authRoutes = require("./routes/auth");
 const gameRoutes = require("./routes/games");
@@ -23,8 +23,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", team: "Sector C7" });
 });
 
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Sector C7 corriendo en el puerto ${PORT}`);
-  });
+connectDB();
+app.listen(PORT, () => {
+  console.log(`Sector C7 corriendo en el puerto ${PORT}`);
 });
